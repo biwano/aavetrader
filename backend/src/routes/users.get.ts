@@ -1,6 +1,6 @@
-import { createRoute } from "@hono/zod-openapi";
-import { z } from "@hono/zod-openapi";
-import app from "../app.js";
+import { createRoute } from '@hono/zod-openapi'
+import { z } from '@hono/zod-openapi'
+import app from '../app.js'
 
 const ParamsSchema = z.object({
   id: z
@@ -8,40 +8,40 @@ const ParamsSchema = z.object({
     .min(3)
     .openapi({
       param: {
-        name: "id",
-        in: "path",
+        name: 'id',
+        in: 'path',
       },
-      example: "1212121",
+      example: '1212121',
     }),
-});
+})
 
 const QuerySchema = z.object({
-  n: z.coerce.number().openapi({
+  naa: z.coerce.number().openapi({
     param: {
-      name: "n",
-      in: "path",
+      name: 'naa',
+      in: 'query',
     },
     example: 1,
   }),
-});
+})
 
 const UserSchema = z
   .object({
     id: z.string().openapi({
-      example: "123",
+      example: '123',
     }),
     name: z.string().openapi({
-      example: "John Doe",
+      example: 'John Doe',
     }),
     age: z.number().openapi({
       example: 42,
     }),
   })
-  .openapi("User");
+  .openapi('User')
 
 const route = createRoute({
-  method: "get",
-  path: "/users/{id}",
+  method: 'get',
+  path: '/users/{id}',
   request: {
     params: ParamsSchema,
     query: QuerySchema,
@@ -49,22 +49,22 @@ const route = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
+        'application/json': {
           schema: UserSchema,
         },
       },
-      description: "Retrieve the user",
+      description: 'Retrieve the user',
     },
   },
-});
+})
 
 app.openapi(route, (c) => {
-  const { id } = c.req.valid("param");
-  const { n } = c.req.valid("query");
-  console.info(typeof n);
+  const { id } = c.req.valid('param')
+  const { naa } = c.req.valid('query')
+  console.info(typeof naa)
   return c.json({
     id,
     age: 20,
-    name: "Ultra-man",
-  });
-});
+    name: 'Ultra-man',
+  })
+})
