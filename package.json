@@ -1,22 +1,17 @@
 {
-  "name": "basic",
+  "name": "aavetrader",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build --mode client && vite build",
-    "preview": "wrangler pages dev",
-    "deploy": "$npm_execpath run build && wrangler pages deploy"
+    "dev": "tsx watch src/index.ts"
   },
-  "private": true,
   "dependencies": {
-    "hono": "^4.6.9",
-    "honox": "^0.1.26"
+    "@hono/node-server": "^1.13.5",
+    "@hono/swagger-ui": "^0.4.1",
+    "@hono/zod-openapi": "^0.17.0",
+    "hono": "^4.6.9"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240529.0",
-    "@hono/vite-build": "^1.0.0",
-    "@hono/vite-dev-server": "^0.15.1",
-    "vite": "^5.2.12",
-    "wrangler": "^3.57.2"
+    "@types/node": "^20.11.17",
+    "tsx": "^4.7.1"
   }
 }

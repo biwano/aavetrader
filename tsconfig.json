@@ -1,23 +1,14 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "NodeNext",
     "strict": true,
+    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
     "types": [
-      "vite/client",
-      "@cloudflare/workers-types/2023-07-01"
+      "node"
     ],
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx"
-  },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ]
+    "jsxImportSource": "hono/jsx",
+  }
 }

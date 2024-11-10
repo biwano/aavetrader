@@ -1,9 +1,4 @@
-# prod
-dist/
-
 # dev
-.hono/
-.wrangler/
 .yarn/
 !.yarn/releases
 .vscode/*
@@ -19,7 +14,6 @@ node_modules/
 # env
 .env
 .env.production
-.dev.vars
 
 # logs
 logs/
