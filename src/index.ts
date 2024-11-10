@@ -53,7 +53,7 @@ const route = createRoute({
 
 const app = new OpenAPIHono()
 
-app.get('/ui', swaggerUI({ url: '/doc' }))
+app.get('/ui', swaggerUI({ url: '/openapi.json' }))
 
 
 app.openapi(route, (c) => {
@@ -66,7 +66,7 @@ app.openapi(route, (c) => {
 })
 
 // The OpenAPI documentation will be available at /doc
-app.doc('/doc', {
+app.doc('/openapi.json', {
   openapi: '3.0.0',
   info: {
     version: '1.0.0',
