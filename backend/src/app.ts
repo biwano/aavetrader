@@ -1,3 +1,3 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 
-export default new OpenAPIHono()
+export default new OpenAPIHono();
