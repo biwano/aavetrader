@@ -10,12 +10,8 @@
  */
 
 export interface User {
-  /** @example "123" */
-  id: string;
-  /** @example "John Doe" */
-  name: string;
-  /** @example 42 */
-  age: number;
+  /** @pattern ^(0x)?[0-9a-fA-F]{40}$ */
+  address: string;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -233,25 +229,17 @@ export class HttpClient<SecurityDataType = unknown> {
  * @version 1.0.0
  */
 export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDataType> {
-  users = {
+  info = {
     /**
      * No description
      *
-     * @name UsersDetail
-     * @request GET:/users/{id}
+     * @name InfoList
+     * @request GET:/info
      */
-    usersDetail: (
-      id: string,
-      query?: {
-        /** @example 1 */
-        naa?: number | null;
-      },
-      params: RequestParams = {},
-    ) =>
+    infoList: (params: RequestParams = {}) =>
       this.request<User, any>({
-        path: `/users/${id}`,
+        path: `/info`,
         method: "GET",
-        query: query,
         format: "json",
         ...params,
       }),

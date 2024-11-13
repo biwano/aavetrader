@@ -1,3 +1,7 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
+import { OpenAPIHono } from '@hono/zod-openapi'
+import { cors } from 'hono/cors'
 
-export default new OpenAPIHono();
+const app = new OpenAPIHono()
+app.use('/*', cors())
+
+export default app
