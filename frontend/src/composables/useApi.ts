@@ -1,13 +1,12 @@
-import { getActivePinia } from 'pinia'
-import { ref } from 'vue'
 import { Api, type HttpResponse } from '@sdk/api'
 
 const api = new Api({
   baseUrl: 'http://localhost:3000',
 })
 
-const handle = <T, D>(response: Promise<HttpResponse<T, D>>) => {
-  return response.then((r) => r.json())
+const handle = async <T, D>(response: Promise<HttpResponse<T, D>>) => {
+  const r = await response
+  return await r.json()
 }
 
 export default function useApi() {
