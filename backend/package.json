@@ -5,9 +5,14 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
+    "@aave/contract-helpers": "^1.30.5",
+    "@aave/math-utils": "^1.30.5",
+    "@bgd-labs/aave-address-book": "^4.3.1",
     "@hono/node-server": "^1.13.5",
     "@hono/swagger-ui": "^0.4.1",
     "@hono/zod-openapi": "^0.17.0",
+    "dotenv": "^16.4.5",
+    "ethers": "^5.7.2",
     "hono": "^4.6.9",
     "sdk": "../sdk"
   },
