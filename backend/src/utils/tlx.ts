@@ -1,81 +1,70 @@
-import { ethers } from "ethers";
-import { erc20Abi, getContract, maxUint256 } from "viem";
-import { getAlchemy } from "./alchemy.js";
-import getBlockchain from "./blockchain.js";
+import { maxUint256 } from "viem";
+import blockchain, {
+  type A0xString,
+  type ERC20Contract,
+  type TLXContract,
+} from "./blockchain.js";
 
-const ABIS = {
-  erc20: [
-    "function approve(address spender, uint256 amount) external returns (bool)",
-    "function allowance(address _owner, address _spender) external returns (uint256)",
-  ],
-};
-type A0xString = `0x${string}`;
-const CONTRACTS: Record<string, A0xString> = {
-  BTC_LONG: "0xc1422a15de4B7ED22EEedaEA2a4276De542C7a77",
-  USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
-  SUSD: "0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9",
-  TLX: "0xc1422a15de4B7ED22EEedaEA2a4276De542C7a77",
-};
+const MAX_SLIPPAGE = 0.001;
 
 export const ensureAllowance = async ({
-  token,
+  contract,
   spender,
 }: {
-  token: A0xString;
+  contract: ERC20Contract;
   spender: A0xString;
 }) => {
-  const { client, account } = getBlockchain();
-  const contract = getContract({
-    address: token,
-    abi: erc20Abi,
-    client,
-  });
+  const { account, writeContract } = blockchain();
   const allowance = await contract.read.allowance([account.address, spender]);
 
   if (!(allowance == maxUint256)) {
-    await contract.write.approve([spender, maxUint256]);
+    await writeContract(contract, "approve", [spender, maxUint256]);
   }
 };
 
-export const long = async () => {
-  const { account } = getBlockchain();
-  ensureAllowance({
-    token: CONTRACTS.SUSD,
-    spender: CONTRACTS.TLX,
+export const getExchangeRate = async (tlxContract: TLXContract) => {
+  const { toNumber } = blockchain();
+  const exchangeRate = toNumber(
+    tlxContract,
+    await tlxContract.read.exchangeRate(),
+  );
+  return exchangeRate;
+};
+
+export const buy = async (
+  tlxContract: TLXContract,
+  SUSDAmountBigint: bigint,
+) => {
+  const { CONTRACTS, toNumber, toBigint, writeContract } = blockchain();
+  await ensureAllowance({
+    contract: CONTRACTS.SUSD,
+    spender: tlxContract.address,
   });
 
-  maxUint256;
-  return;
-  const abi = [
-    "function approve(address spender, uint256 amount) external returns (bool)",
-  ];
-  /*
-  const contract = new ethers.Contract(
-    CONTRACTS.LONG,
-    abi,
-    account
-  )*/
-  const alchemy = getAlchemy();
-  let iface = new ethers.utils.Interface(abi);
-  const data = iface.encodeFunctionData("approve", [
-    CONTRACTS.BTC_LONG,
-    ethers.constants.MaxUint256,
+  const exchangeRate = await getExchangeRate(tlxContract);
+
+  console.info("exchange rate:", exchangeRate);
+
+  const minAmountOut =
+    ((await toNumber(CONTRACTS.SUSD, SUSDAmountBigint)) / exchangeRate) *
+    (1 - MAX_SLIPPAGE);
+  const minAmountOutBigInt = await toBigint(tlxContract, minAmountOut);
+
+  await writeContract(tlxContract, "mint", [
+    SUSDAmountBigint,
+    minAmountOutBigInt,
   ]);
+};
 
-  const gas = await alchemy.core.estimateGas({
-    to: CONTRACTS.BTC_LONG,
-    data,
-  });
-
-  console.info(gas);
+export const long = async () => {
+  const { CONTRACTS, getBalance } = blockchain();
 
   /*
-  const approve = await token.approve(
-    routerAddress,
-    ethers.constants.MaxUint256,
-    {
-      gasLimit,
-      gasPrice: ethers.utils.parseUnits(gasPrice.toString(), 'gwei'),
-    }
-  );*/
+  const susdBalance = await getBalance(CONTRACTS.SUSD);
+  console.info("susdBalance", susdBalance);
+  */
+
+  await buy(CONTRACTS.BTC_LONG, 106153426232091494n);
+
+  const input = 106153426232091494;
 };

@@ -1,10 +1,30 @@
 import { Network } from "alchemy-sdk";
-import { createWalletClient, http, publicActions } from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  erc20Abi,
+  formatUnits,
+  getContract,
+  http,
+  parseUnits,
+  publicActions,
+  type ContractFunctionArgs,
+  type ContractFunctionName,
+} from "viem";
 import { mnemonicToAccount } from "viem/accounts";
 import { optimism } from "viem/chains";
-import { cached } from "./cache.js";
+import { withCache, withCacheSync } from "./cache.js";
+import { tlxAbi } from "./tlxAbi.js";
 
-const getBlockchain = cached(() => {
+export type A0xString = `0x${string}`;
+
+export const CONTRACTS_ADDRESSES: Record<string, A0xString> = {
+  BTC_LONG: "0xc1422a15de4B7ED22EEedaEA2a4276De542C7a77",
+  USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+  SUSD: "0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9",
+};
+
+const getBlockchain = () => {
   if (!process.env.MNEMONIC) throw "No wallet";
 
   // Account
@@ -13,86 +33,109 @@ const getBlockchain = cached(() => {
   // Alchemy URL
   const API_URL = `https://${Network.OPT_MAINNET}.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`;
 
-  // Client
+  // Wallet client
   const client = createWalletClient({
     account,
     chain: optimism,
     transport: http(API_URL),
   }).extend(publicActions);
 
+  // Public client
+  const publicClient = createPublicClient({
+    chain: optimism,
+    transport: http(API_URL),
+  });
+
+  // Contracts
+  const CONTRACTS = {
+    SUSD: getContract({
+      address: CONTRACTS_ADDRESSES.SUSD,
+      abi: erc20Abi,
+      client,
+    }),
+    BTC_LONG: getContract({
+      address: CONTRACTS_ADDRESSES.BTC_LONG,
+      abi: tlxAbi,
+      client,
+    }),
+  };
+  type Contract = (typeof CONTRACTS)[keyof typeof CONTRACTS];
+
+  // Helpers
+  const getBalance = async (contract: Contract) => {
+    return contract.read.balanceOf([account.address]);
+  };
+
+  const getDecimals = async (contract: Contract) => {
+    return withCache({
+      key: `decimals_${contract.address}`,
+      func: () => contract.read.decimals(),
+    });
+  };
+
+  const toNumber = async (contract: Contract, value: bigint) => {
+    const decimals = await getDecimals(contract);
+    return Number(formatUnits(value, decimals));
+  };
+
+  const toBigint = async (contract: Contract, value: number) => {
+    const decimals = await getDecimals(contract);
+    return parseUnits(value.toPrecision(decimals), decimals);
+  };
+
+  const writeContract = async <
+    const T extends Contract,
+    const abi extends T["abi"],
+    functionName extends ContractFunctionName<abi, "nonpayable" | "payable">,
+    const args extends ContractFunctionArgs<
+      abi,
+      "nonpayable" | "payable",
+      functionName
+    >,
+  >(
+    contract: T,
+    functionName: functionName,
+    args: args,
+  ) => {
+    console.debug(
+      `Writing contract ${contract.address}.${functionName} ${args}`,
+    );
+
+    const { request, result } = await publicClient.simulateContract({
+      address: contract.address,
+      abi: contract.abi,
+      // @ts-expect-error
+      functionName,
+      // @ts-expect-error
+      args,
+      account,
+    });
+    const hash = await client.writeContract(request);
+    await publicClient.waitForTransactionReceipt({ hash });
+    console.debug(`Done : ${hash} ${result}`);
+    return { hash, result };
+  };
+
   return {
     client,
     account,
+    getBalance,
+    getDecimals,
+    toNumber,
+    toBigint,
+    writeContract,
+    CONTRACTS,
   };
-});
+};
 
-export default getBlockchain;
-
-/*
-// ES5 Alternative imports
-//  const {
-//    ChainId,
-//    UiIncentiveDataProvider,
-//    UiPoolDataProvider,
-//  } = require('@aave/contract-helpers');
-//  const markets = require('@bgd-labs/aave-address-book');
-//  const ethers = require('ethers');
-
-// Sample RPC address for querying ETH mainnet
-const provider = new ethers.providers.JsonRpcProvider(
-  'https://eth-mainnet.public.blastapi.io',
-);
-
-// User address to fetch data for, insert address here
-const currentAccount = '0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c';
-
-// View contract used to fetch all reserves data (including market base currency data), and user reserves
-// Using Aave V3 Eth Mainnet address for demo
-const poolDataProviderContract = new UiPoolDataProvider({
-  uiPoolDataProviderAddress: markets.AaveV3Ethereum.UI_POOL_DATA_PROVIDER,
-  provider,
-  chainId: ChainId.mainnet,
-});
-
-// View contract used to fetch all reserve incentives (APRs), and user incentives
-// Using Aave V3 Eth Mainnet address for demo
-const incentiveDataProviderContract = new UiIncentiveDataProvider({
-  uiIncentiveDataProviderAddress:
-    markets.AaveV3Ethereum.UI_INCENTIVE_DATA_PROVIDER,
-  provider,
-  chainId: ChainId.mainnet,
-});
-
-async function fetchContractData() {
-  // Object containing array of pool reserves and market base currency data
-  // { reservesArray, baseCurrencyData }
-  const reserves = await poolDataProviderContract.getReservesHumanized({
-    lendingPoolAddressProvider: markets.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
+const blockchain = () =>
+  withCacheSync({
+    key: "blockchain",
+    func: getBlockchain,
   });
 
-  // Object containing array or users aave positions and active eMode category
-  // { userReserves, userEmodeCategoryId }
-  const userReserves = await poolDataProviderContract.getUserReservesHumanized({
-    lendingPoolAddressProvider: markets.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
-    user: currentAccount,
-  });
+type ContractsDict = ReturnType<typeof getBlockchain>["CONTRACTS"];
+export type ERC20Contract = ContractsDict["SUSD"];
+export type TLXContract = ContractsDict["BTC_LONG"];
 
-  // Array of incentive tokens with price feed and emission APR
-  const reserveIncentives =
-    await incentiveDataProviderContract.getReservesIncentivesDataHumanized({
-      lendingPoolAddressProvider:
-        markets.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
-    });
-
-  // Dictionary of claimable user incentives
-  const userIncentives =
-    await incentiveDataProviderContract.getUserReservesIncentivesDataHumanized({
-      lendingPoolAddressProvider:
-        markets.AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
-      user: currentAccount,
-    });
-
-  console.log({ reserves, userReserves, reserveIncentives, userIncentives });
-}
-
-fetchContractData();*/
+export default blockchain;

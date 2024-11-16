@@ -1,26 +1,23 @@
-import { createRoute } from '@hono/zod-openapi'
-import { z } from '@hono/zod-openapi'
-import app from '../app.js'
-import { Response } from '../utils/schema.js'
-import wallet from '../utils/blockchain.js'
-import getBlockchain from '../utils/blockchain.js'
-import { long } from '../utils/tlx.js'
+import { createRoute, z } from "@hono/zod-openapi";
+import app from "../app.js";
+import { Response } from "../utils/schema.js";
+import { long } from "../utils/tlx.js";
 
 const InfoSchema = z
   .object({
     result: z.string(),
   })
-  .openapi('Info')
+  .openapi("Info");
 
 const route = createRoute({
-  method: 'post',
-  path: '/trade',
+  method: "post",
+  path: "/trade",
   responses: Response(InfoSchema),
-})
+});
 
-app.openapi(route, (c) => {
-  long()
+app.openapi(route, async (c) => {
+  await long();
   return c.json({
-    result: 'ok',
-  })
-})
+    result: "ok",
+  });
+});
