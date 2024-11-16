@@ -4,24 +4,23 @@ import app from '../app.js'
 import { Response } from '../utils/schema.js'
 import wallet from '../utils/blockchain.js'
 import getBlockchain from '../utils/blockchain.js'
-import { getGasPriceInGwei } from '../utils/alchemy.js'
+import { long } from '../utils/tlx.js'
 
 const InfoSchema = z
   .object({
-    address: z.string(),
-    gasPriceInGwei: z.number(),
+    result: z.string(),
   })
   .openapi('Info')
 
 const route = createRoute({
-  method: 'get',
-  path: '/info',
+  method: 'post',
+  path: '/trade',
   responses: Response(InfoSchema),
 })
 
-app.openapi(route, async (c) => {
+app.openapi(route, (c) => {
+  long()
   return c.json({
-    address: getBlockchain().wallet.address,
-    gasPriceInGwei: await getGasPriceInGwei(),
+    result: 'ok',
   })
 })

@@ -1,4 +1,4 @@
-import app from "../app.js";
-import { swaggerUI } from "@hono/swagger-ui";
+import app from '../app.js'
+import { swaggerUI } from '@hono/swagger-ui'
 
-app.get("/ui", swaggerUI({ url: "/openapi.json" }));
+app.get('/ui', swaggerUI({ url: '/openapi.json' }))

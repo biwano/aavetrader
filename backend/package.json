@@ -11,13 +11,22 @@
     "@hono/node-server": "^1.13.5",
     "@hono/swagger-ui": "^0.4.1",
     "@hono/zod-openapi": "^0.17.0",
+    "alchemy-sdk": "^3.4.8",
     "dotenv": "^16.4.5",
     "ethers": "^5.7.2",
     "hono": "^4.6.9",
-    "sdk": "../sdk"
+    "prettier": "^3.3.3",
+    "sdk": "../sdk",
+    "viem": "^2.21.45"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
+    "prettier-plugin-organize-imports": "^4.1.0",
     "tsx": "^4.7.1"
+  },
+  "prettier": {
+    "plugins": [
+      "prettier-plugin-organize-imports"
+    ]
   }
 }

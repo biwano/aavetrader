@@ -1,13 +1,32 @@
-import { ethers, Wallet } from 'ethers'
-import { UiPoolDataProvider, UiIncentiveDataProvider, ChainId } from '@aave/contract-helpers'
-import * as markets from '@bgd-labs/aave-address-book'
+import { Network } from "alchemy-sdk";
+import { createWalletClient, http, publicActions } from "viem";
+import { mnemonicToAccount } from "viem/accounts";
+import { optimism } from "viem/chains";
+import { cached } from "./cache.js";
 
-const getWallet = () => {
-  if (!process.env.MNEMONIC) throw 'No wallet'
-  return Wallet.fromMnemonic(process.env.MNEMONIC)
-}
+const getBlockchain = cached(() => {
+  if (!process.env.MNEMONIC) throw "No wallet";
 
-export default getWallet
+  // Account
+  const account = mnemonicToAccount(process.env.MNEMONIC);
+
+  // Alchemy URL
+  const API_URL = `https://${Network.OPT_MAINNET}.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`;
+
+  // Client
+  const client = createWalletClient({
+    account,
+    chain: optimism,
+    transport: http(API_URL),
+  }).extend(publicActions);
+
+  return {
+    client,
+    account,
+  };
+});
+
+export default getBlockchain;
 
 /*
 // ES5 Alternative imports
