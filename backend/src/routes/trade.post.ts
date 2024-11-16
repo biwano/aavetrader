@@ -1,7 +1,7 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import app from "../app.js";
 import { Response } from "../utils/schema.js";
-import { long } from "../utils/tlx.js";
+import { trade } from "../utils/tlx.js";
 
 const InfoSchema = z
   .object({
@@ -16,7 +16,7 @@ const route = createRoute({
 });
 
 app.openapi(route, async (c) => {
-  await long();
+  await trade(0.5);
   return c.json({
     result: "ok",
   });

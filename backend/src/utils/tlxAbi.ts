@@ -33,4 +33,24 @@ export const tlxAbi = [
       },
     ],
   },
+  {
+    type: "function",
+    name: "redeem",
+    stateMutability: "nonpayable",
+    inputs: [
+      {
+        name: "leveragedTokenAmount_",
+        type: "uint256",
+      },
+      {
+        name: "minBaseAmountReceived_",
+        type: "uint256",
+      },
+    ],
+    outputs: [
+      {
+        type: "uint256",
+      },
+    ],
+  },
 ] as const;

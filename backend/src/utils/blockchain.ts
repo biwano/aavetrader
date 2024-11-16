@@ -20,6 +20,7 @@ export type A0xString = `0x${string}`;
 
 export const CONTRACTS_ADDRESSES: Record<string, A0xString> = {
   BTC_LONG: "0xc1422a15de4B7ED22EEedaEA2a4276De542C7a77",
+  BTC_SHORT: "0x940C53FD9E3184686C963e55A6e663b6922F3DD9",
   USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
   SUSD: "0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9",
 };
@@ -58,12 +59,22 @@ const getBlockchain = () => {
       abi: tlxAbi,
       client,
     }),
+    BTC_SHORT: getContract({
+      address: CONTRACTS_ADDRESSES.BTC_SHORT,
+      abi: tlxAbi,
+      client,
+    }),
   };
   type Contract = (typeof CONTRACTS)[keyof typeof CONTRACTS];
 
   // Helpers
   const getBalance = async (contract: Contract) => {
     return contract.read.balanceOf([account.address]);
+  };
+
+  const getBalanceAsNumber = async (contract: Contract) => {
+    const balance = await getBalance(contract);
+    return toNumber(contract, balance);
   };
 
   const getDecimals = async (contract: Contract) => {
@@ -120,6 +131,7 @@ const getBlockchain = () => {
     client,
     account,
     getBalance,
+    getBalanceAsNumber,
     getDecimals,
     toNumber,
     toBigint,
