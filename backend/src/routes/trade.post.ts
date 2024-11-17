@@ -1,22 +1,30 @@
+import { zBodyValidator } from "@hono-dev/zod-body-validator";
 import { createRoute, z } from "@hono/zod-openapi";
 import app from "../app.js";
 import { Response } from "../utils/schema.js";
 import { trade } from "../utils/tlx.js";
 
-const InfoSchema = z
+const ResponseSchema = z
   .object({
     result: z.string(),
   })
-  .openapi("Info");
+  .openapi("Trade");
+
+const BodySchema = z.object({
+  direction: z.number(),
+});
+type Body = z.infer<typeof BodySchema>;
 
 const route = createRoute({
   method: "post",
   path: "/trade",
-  responses: Response(InfoSchema),
+  responses: Response(ResponseSchema),
+  middleware: zBodyValidator(BodySchema),
 });
 
 app.openapi(route, async (c) => {
-  await trade(0.5);
+  const body = await c.req.json<Body>();
+  await trade(body.direction);
   return c.json({
     result: "ok",
   });

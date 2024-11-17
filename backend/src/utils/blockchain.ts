@@ -19,7 +19,7 @@ import { tlxAbi } from "./tlxAbi.js";
 export type A0xString = `0x${string}`;
 
 export const CONTRACTS_ADDRESSES: Record<string, A0xString> = {
-  BTC_LONG: "0xc1422a15de4B7ED22EEedaEA2a4276De542C7a77",
+  BTC_LONG: "0x8efd20F6313eB0bc61908b3eB95368BE442A149d",
   BTC_SHORT: "0x940C53FD9E3184686C963e55A6e663b6922F3DD9",
   USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
   SUSD: "0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9",
@@ -66,6 +66,7 @@ const getBlockchain = () => {
     }),
   };
   type Contract = (typeof CONTRACTS)[keyof typeof CONTRACTS];
+  type TLXContract = (typeof CONTRACTS)["BTC_LONG" | "BTC_SHORT"];
 
   // Helpers
   const getBalance = async (contract: Contract) => {
@@ -75,6 +76,30 @@ const getBlockchain = () => {
   const getBalanceAsNumber = async (contract: Contract) => {
     const balance = await getBalance(contract);
     return toNumber(contract, balance);
+  };
+
+  const getExchangeRate = (tlxContract: TLXContract) =>
+    withCache({
+      ttlMs: 60 * 1000,
+      key: `exchangeRate_${tlxContract.address}`,
+      func: async () => {
+        const exchangeRate = toNumber(
+          tlxContract,
+          await tlxContract.read.exchangeRate(),
+        );
+        return exchangeRate;
+      },
+    });
+
+  const getValueinSUSD = async (tlxContract: TLXContract) => {
+    const [balance, exchangeRate] = await Promise.all([
+      getBalance(tlxContract),
+      getExchangeRate(tlxContract),
+    ]);
+    const susdValue = (await toNumber(tlxContract, balance)) * exchangeRate;
+    const susdValueBigInt = await toBigint(CONTRACTS.SUSD, susdValue);
+
+    return susdValueBigInt;
   };
 
   const getDecimals = async (contract: Contract) => {
@@ -89,7 +114,10 @@ const getBlockchain = () => {
     return Number(formatUnits(value, decimals));
   };
 
-  const toBigint = async (contract: Contract, value: number) => {
+  const toBigint = async (
+    contract: Contract,
+    value: number,
+  ): Promise<bigint> => {
     const decimals = await getDecimals(contract);
     return parseUnits(value.toPrecision(decimals), decimals);
   };
@@ -132,6 +160,8 @@ const getBlockchain = () => {
     account,
     getBalance,
     getBalanceAsNumber,
+    getValueinSUSD,
+    getExchangeRate,
     getDecimals,
     toNumber,
     toBigint,

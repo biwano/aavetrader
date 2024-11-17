@@ -23,20 +23,12 @@ export const ensureAllowance = async ({
   }
 };
 
-export const getExchangeRate = async (tlxContract: TLXContract) => {
-  const { toNumber } = blockchain();
-  const exchangeRate = toNumber(
-    tlxContract,
-    await tlxContract.read.exchangeRate(),
-  );
-  return exchangeRate;
-};
-
 export const mint = async (
   tlxContract: TLXContract,
   SUSDAmountBigint: bigint,
 ) => {
-  const { CONTRACTS, toNumber, toBigint, writeContract } = blockchain();
+  const { CONTRACTS, toNumber, toBigint, writeContract, getExchangeRate } =
+    blockchain();
   await ensureAllowance({
     contract: CONTRACTS.SUSD,
     spender: tlxContract.address,
@@ -60,7 +52,8 @@ export const redeem = async (
   tlxContract: TLXContract,
   leveragedTokenAmountBigint: bigint,
 ) => {
-  const { CONTRACTS, toNumber, toBigint, writeContract } = blockchain();
+  const { CONTRACTS, toNumber, toBigint, writeContract, getExchangeRate } =
+    blockchain();
 
   const exchangeRate = await getExchangeRate(tlxContract);
 
@@ -101,13 +94,55 @@ export const dropShort = async () => {
   }
 };
 
+export const adjust = async (tlxContract: TLXContract, direction: number) => {
+  const {
+    CONTRACTS,
+    getExchangeRate,
+    getBalanceAsNumber,
+    getBalance,
+    toBigint,
+    toNumber,
+  } = blockchain();
+
+  const [tlxBalanceBigint, tlxExchangeRate, susdBalance] = await Promise.all([
+    getBalance(tlxContract),
+    getExchangeRate(tlxContract),
+    getBalanceAsNumber(CONTRACTS.SUSD),
+  ]);
+
+  const tlxBalance = await toNumber(tlxContract, tlxBalanceBigint);
+
+  const targetTlxBalance =
+    (susdBalance * direction) / (tlxExchangeRate * (1 - direction));
+
+  const targetTlxBalancebigint = await toBigint(
+    CONTRACTS.BTC_LONG,
+    targetTlxBalance,
+  );
+
+  // Adjust differences > 10%
+  const diff = Math.abs(targetTlxBalance - tlxBalance) / tlxBalance;
+  if (diff < 0.1) return;
+
+  if (targetTlxBalancebigint > tlxBalanceBigint) {
+    redeem(CONTRACTS.BTC_LONG, targetTlxBalancebigint - tlxBalanceBigint);
+  }
+
+  if (targetTlxBalancebigint < tlxBalanceBigint) {
+    mint(CONTRACTS.BTC_LONG, tlxBalanceBigint - targetTlxBalancebigint);
+  }
+};
+
 export const trade = async (direction: number) => {
-  const { CONTRACTS, getBalance } = blockchain();
+  const { CONTRACTS } = blockchain();
 
   if (direction >= 0) {
     await dropShort();
+    adjust(CONTRACTS.BTC_LONG, direction);
   }
   if (direction <= 0) {
+    direction = -direction;
     await dropLong();
+    adjust(CONTRACTS.BTC_SHORT, -direction);
   }
 };
