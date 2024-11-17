@@ -1,13 +1,16 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import app from "../app.js";
-import { getGasPriceInGwei } from "../utils/alchemy.js";
-import blockchain from "../utils/blockchain.js";
+import blockchain from "../utils/blockchain/blockchain.js";
 import { Response } from "../utils/schema.js";
 
 const InfoSchema = z
   .object({
     address: z.string(),
-    gasPriceInGwei: z.number(),
+    balances: z.object({
+      SUSD: z.number(),
+      BTC_LONG: z.number(),
+      BTC_SHORT: z.number(),
+    }),
   })
   .openapi("Info");
 
@@ -26,7 +29,6 @@ app.openapi(route, async (c) => {
   ]);
   return c.json({
     address: blockchain().account.address,
-    gasPriceInGwei: await getGasPriceInGwei(),
     balances: {
       SUSD: SusdBalance,
       BTC_LONG: BtcLongBalance,
