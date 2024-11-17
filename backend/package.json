@@ -2,7 +2,8 @@
   "name": "aavetrader",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "generate:db:types": "supabase gen types typescript --project-id arpxncbcprwllcgqtzoy > src/.generated/database.types.ts"
   },
   "dependencies": {
     "@aave/contract-helpers": "^1.30.5",
@@ -12,6 +13,7 @@
     "@hono/node-server": "^1.13.5",
     "@hono/swagger-ui": "^0.4.1",
     "@hono/zod-openapi": "^0.17.0",
+    "@supabase/supabase-js": "^2.46.1",
     "alchemy-sdk": "^3.4.8",
     "dotenv": "^16.4.5",
     "hono": "^4.6.9",
@@ -22,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^20.11.17",
     "prettier-plugin-organize-imports": "^4.1.0",
+    "supabase": "^1.219.2",
     "tsx": "^4.7.1"
   },
   "prettier": {

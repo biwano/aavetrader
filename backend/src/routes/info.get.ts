@@ -4,7 +4,7 @@ import blockchain from "../utils/blockchain/blockchain.js";
 import CONTRACTS from "../utils/blockchain/contracts.js";
 import { Response } from "../utils/schema.js";
 
-const InfoSchema = z
+const ResponseSchema = z
   .object({
     address: z.string(),
     balances: z.object({
@@ -18,7 +18,7 @@ const InfoSchema = z
 const route = createRoute({
   method: "get",
   path: "/info",
-  responses: Response(InfoSchema),
+  responses: Response(ResponseSchema),
 });
 
 app.openapi(route, async (c) => {
