@@ -1,14 +1,11 @@
-import dotenv from 'dotenv'
-import { serve } from '@hono/node-server'
-import app from './app.js'
-import './routes'
+import { serve } from "@hono/node-server";
+import app from "./app.js";
+import "./routes";
 
-dotenv.config()
-
-const port = 3000
-console.log(`Server is running on http://localhost:${port}`)
+const port = 3000;
+console.log(`Server is running on http://localhost:${port}`);
 
 serve({
   fetch: app.fetch,
   port,
-})
+});

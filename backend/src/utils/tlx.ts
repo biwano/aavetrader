@@ -1,9 +1,9 @@
 import { maxUint256 } from "viem";
 import blockchain, {
   type A0xString,
-  type ERC20Contract,
-  type TLXContract,
-} from "./blockchain.js";
+  type BlockchainERC20Contract,
+  type BlockchainTLXContract,
+} from "./blockchain/blockchain.js";
 
 const MAX_SLIPPAGE = 0.1;
 
@@ -11,7 +11,7 @@ export const ensureAllowance = async ({
   contract,
   spender,
 }: {
-  contract: ERC20Contract;
+  contract: BlockchainERC20Contract;
   spender: A0xString;
 }) => {
   const { account, writeContract } = blockchain();
@@ -23,7 +23,10 @@ export const ensureAllowance = async ({
   }
 };
 
-export const mint = async (tlxContract: TLXContract, SUSDAmount: number) => {
+export const mint = async (
+  tlxContract: BlockchainTLXContract,
+  SUSDAmount: number,
+) => {
   const {
     CONTRACTS,
     toBigint,
@@ -53,7 +56,7 @@ export const mint = async (tlxContract: TLXContract, SUSDAmount: number) => {
 };
 
 export const redeem = async (
-  tlxContract: TLXContract,
+  tlxContract: BlockchainTLXContract,
   leveragedTokenAmount: number,
 ) => {
   const {
@@ -81,7 +84,7 @@ export const redeem = async (
   console.info(` => Received ${result} SUSD`);
 };
 
-export const drop = async (tlxContract: TLXContract) => {
+export const drop = async (tlxContract: BlockchainTLXContract) => {
   const { getBalance } = blockchain();
   const balance = await getBalance(tlxContract);
   if (balance > 0) {
@@ -90,7 +93,10 @@ export const drop = async (tlxContract: TLXContract) => {
   }
 };
 
-export const adjust = async (tlxContract: TLXContract, direction: number) => {
+export const adjust = async (
+  tlxContract: BlockchainTLXContract,
+  direction: number,
+) => {
   const { CONTRACTS, getExchangeRate, getBalance } = blockchain();
 
   const [tlxBalance, tlxExchangeRate, susdBalance] = await Promise.all([

@@ -1,6 +1,7 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import app from "../app.js";
 import blockchain from "../utils/blockchain/blockchain.js";
+import CONTRACTS from "../utils/blockchain/contracts.js";
 import { Response } from "../utils/schema.js";
 
 const InfoSchema = z
@@ -21,11 +22,10 @@ const route = createRoute({
 });
 
 app.openapi(route, async (c) => {
-  const { CONTRACTS, getBalance } = blockchain();
   const [SusdBalance, BtcLongBalance, BtcShortBalance] = await Promise.all([
-    getBalance(CONTRACTS.SUSD),
-    getBalance(CONTRACTS.BTC_LONG),
-    getBalance(CONTRACTS.BTC_SHORT),
+    CONTRACTS.SUSD.getBalance(),
+    CONTRACTS.BTC_LONG.getBalance(),
+    CONTRACTS.BTC_SHORT.getBalance(),
   ]);
   return c.json({
     address: blockchain().account.address,
