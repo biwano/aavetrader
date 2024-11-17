@@ -20,7 +20,7 @@ export type A0xString = `0x${string}`;
 
 export const CONTRACTS_ADDRESSES: Record<string, A0xString> = {
   BTC_LONG: "0x8efd20F6313eB0bc61908b3eB95368BE442A149d",
-  BTC_SHORT: "0x940C53FD9E3184686C963e55A6e663b6922F3DD9",
+  BTC_SHORT: "0x5535968f5Cb5C2d69D36948e1e2801a8cC41d980",
   USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
   SUSD: "0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9",
 };
@@ -69,12 +69,12 @@ const getBlockchain = () => {
   type TLXContract = (typeof CONTRACTS)["BTC_LONG" | "BTC_SHORT"];
 
   // Helpers
-  const getBalance = async (contract: Contract) => {
+  const getBalanceBigint = async (contract: Contract) => {
     return contract.read.balanceOf([account.address]);
   };
 
-  const getBalanceAsNumber = async (contract: Contract) => {
-    const balance = await getBalance(contract);
+  const getBalance = async (contract: Contract) => {
+    const balance = await getBalanceBigint(contract);
     return toNumber(contract, balance);
   };
 
@@ -93,7 +93,7 @@ const getBlockchain = () => {
 
   const getValueinSUSD = async (tlxContract: TLXContract) => {
     const [balance, exchangeRate] = await Promise.all([
-      getBalance(tlxContract),
+      getBalanceBigint(tlxContract),
       getExchangeRate(tlxContract),
     ]);
     const susdValue = (await toNumber(tlxContract, balance)) * exchangeRate;
@@ -116,10 +116,25 @@ const getBlockchain = () => {
 
   const toBigint = async (
     contract: Contract,
-    value: number,
+    value: number | string,
   ): Promise<bigint> => {
     const decimals = await getDecimals(contract);
-    return parseUnits(value.toPrecision(decimals), decimals);
+    const valueWithAdjustedPrecision = Number(value).toPrecision(decimals);
+    const valueInDecimals = Number(valueWithAdjustedPrecision).toFixed(
+      decimals,
+    );
+    return parseUnits(valueInDecimals, decimals);
+  };
+
+  const toBigintBalanceMaxed = async (
+    contract: Contract,
+    value: number,
+  ): Promise<bigint> => {
+    const [n, max] = await Promise.all([
+      toBigint(contract, value),
+      getBalanceBigint(contract),
+    ]);
+    return n + 1000n > max ? max : n;
   };
 
   const writeContract = async <
@@ -159,12 +174,13 @@ const getBlockchain = () => {
     client,
     account,
     getBalance,
-    getBalanceAsNumber,
+    getBalanceBigint,
     getValueinSUSD,
     getExchangeRate,
     getDecimals,
     toNumber,
     toBigint,
+    toBigintBalanceMaxed,
     writeContract,
     CONTRACTS,
   };

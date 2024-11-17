@@ -5,7 +5,7 @@ import blockchain, {
   type TLXContract,
 } from "./blockchain.js";
 
-const MAX_SLIPPAGE = 0.01;
+const MAX_SLIPPAGE = 0.1;
 
 export const ensureAllowance = async ({
   contract,
@@ -23,12 +23,14 @@ export const ensureAllowance = async ({
   }
 };
 
-export const mint = async (
-  tlxContract: TLXContract,
-  SUSDAmountBigint: bigint,
-) => {
-  const { CONTRACTS, toNumber, toBigint, writeContract, getExchangeRate } =
-    blockchain();
+export const mint = async (tlxContract: TLXContract, SUSDAmount: number) => {
+  const {
+    CONTRACTS,
+    toBigint,
+    writeContract,
+    getExchangeRate,
+    toBigintBalanceMaxed,
+  } = blockchain();
   await ensureAllowance({
     contract: CONTRACTS.SUSD,
     spender: tlxContract.address,
@@ -36,100 +38,84 @@ export const mint = async (
 
   const exchangeRate = await getExchangeRate(tlxContract);
 
-  const minAmountOut =
-    ((await toNumber(CONTRACTS.SUSD, SUSDAmountBigint)) / exchangeRate) *
-    (1 - MAX_SLIPPAGE);
-  const minAmountOutBigInt = await toBigint(tlxContract, minAmountOut);
+  const minAmountOut = (SUSDAmount / exchangeRate) * (1 - MAX_SLIPPAGE);
 
-  console.info(`Minting ${SUSDAmountBigint} of ${tlxContract.address} `);
-  await writeContract(tlxContract, "mint", [
-    SUSDAmountBigint,
-    minAmountOutBigInt,
-  ]);
+  console.info(`Minting ${tlxContract.address} with ${SUSDAmount} SUSD`);
+  const { result } = await writeContract(
+    tlxContract,
+    "mint",
+    await Promise.all([
+      toBigintBalanceMaxed(CONTRACTS.SUSD, SUSDAmount),
+      toBigint(tlxContract, minAmountOut),
+    ]),
+  );
+  console.info(` => Minted ${result} ${tlxContract.address}`);
 };
 
 export const redeem = async (
   tlxContract: TLXContract,
-  leveragedTokenAmountBigint: bigint,
+  leveragedTokenAmount: number,
 ) => {
-  const { CONTRACTS, toNumber, toBigint, writeContract, getExchangeRate } =
-    blockchain();
+  const {
+    CONTRACTS,
+    toBigint,
+    writeContract,
+    getExchangeRate,
+    toBigintBalanceMaxed,
+  } = blockchain();
 
   const exchangeRate = await getExchangeRate(tlxContract);
 
   const minBaseAmountReceived =
-    (await toNumber(tlxContract, leveragedTokenAmountBigint)) *
-    exchangeRate *
-    (1 - MAX_SLIPPAGE);
+    leveragedTokenAmount * exchangeRate * (1 - MAX_SLIPPAGE);
 
-  const minBaseAmountReceivedBigInt = await toBigint(
-    CONTRACTS.SUSD,
-    minBaseAmountReceived,
+  console.info(`Redeeming ${leveragedTokenAmount} of ${tlxContract.address} `);
+  const { result } = await writeContract(
+    tlxContract,
+    "redeem",
+    await Promise.all([
+      toBigintBalanceMaxed(tlxContract, leveragedTokenAmount),
+      toBigint(CONTRACTS.SUSD, minBaseAmountReceived),
+    ]),
   );
-  console.info(
-    `Redeeming ${leveragedTokenAmountBigint} of ${tlxContract.address} `,
-  );
-
-  await writeContract(tlxContract, "redeem", [
-    leveragedTokenAmountBigint,
-    minBaseAmountReceivedBigInt,
-  ]);
+  console.info(` => Received ${result} SUSD`);
 };
 
-export const dropLong = async () => {
-  const { CONTRACTS, getBalance } = blockchain();
-  const BtcLongBalance = await getBalance(CONTRACTS.BTC_LONG);
-  if (BtcLongBalance > 0) {
-    console.info("Droping long");
-    await redeem(CONTRACTS.BTC_LONG, BtcLongBalance);
-  }
-};
-
-export const dropShort = async () => {
-  const { CONTRACTS, getBalance } = blockchain();
-  const BtcShortBalance = await getBalance(CONTRACTS.BTC_SHORT);
-  if (BtcShortBalance > 0) {
-    console.info("Droping short");
-    await redeem(CONTRACTS.BTC_SHORT, BtcShortBalance);
+export const drop = async (tlxContract: TLXContract) => {
+  const { getBalance } = blockchain();
+  const balance = await getBalance(tlxContract);
+  if (balance > 0) {
+    console.info(`Droping ${tlxContract.address}`);
+    await redeem(tlxContract, balance);
   }
 };
 
 export const adjust = async (tlxContract: TLXContract, direction: number) => {
-  const {
-    CONTRACTS,
-    getExchangeRate,
-    getBalanceAsNumber,
-    getBalance,
-    toBigint,
-    toNumber,
-  } = blockchain();
+  const { CONTRACTS, getExchangeRate, getBalance } = blockchain();
 
-  const [tlxBalanceBigint, tlxExchangeRate, susdBalance] = await Promise.all([
+  const [tlxBalance, tlxExchangeRate, susdBalance] = await Promise.all([
     getBalance(tlxContract),
     getExchangeRate(tlxContract),
-    getBalanceAsNumber(CONTRACTS.SUSD),
+    getBalance(CONTRACTS.SUSD),
   ]);
+  const totalSUSDvalue = susdBalance + tlxBalance * tlxExchangeRate;
 
-  const tlxBalance = await toNumber(tlxContract, tlxBalanceBigint);
-
-  const targetTlxBalance =
-    (susdBalance * direction) / (tlxExchangeRate * (1 - direction));
-
-  const targetTlxBalancebigint = await toBigint(
-    CONTRACTS.BTC_LONG,
-    targetTlxBalance,
-  );
+  const targetTlxBalance = (totalSUSDvalue * direction) / tlxExchangeRate;
 
   // Adjust differences > 10%
   const diff = Math.abs(targetTlxBalance - tlxBalance) / tlxBalance;
   if (diff < 0.1) return;
 
-  if (targetTlxBalancebigint > tlxBalanceBigint) {
-    redeem(CONTRACTS.BTC_LONG, targetTlxBalancebigint - tlxBalanceBigint);
+  if (targetTlxBalance > tlxBalance) {
+    console.info(`Adjusting Balance of ${tlxContract.address}`);
+    const susdAmount = (targetTlxBalance - tlxBalance) * tlxExchangeRate;
+    await mint(tlxContract, susdAmount);
   }
 
-  if (targetTlxBalancebigint < tlxBalanceBigint) {
-    mint(CONTRACTS.BTC_LONG, tlxBalanceBigint - targetTlxBalancebigint);
+  if (targetTlxBalance < tlxBalance) {
+    console.info(`Adjusting Balance of ${tlxContract.address}`);
+    const tlxAmount = tlxBalance - targetTlxBalance;
+    await redeem(tlxContract, tlxAmount);
   }
 };
 
@@ -137,12 +123,11 @@ export const trade = async (direction: number) => {
   const { CONTRACTS } = blockchain();
 
   if (direction >= 0) {
-    await dropShort();
-    adjust(CONTRACTS.BTC_LONG, direction);
+    await drop(CONTRACTS.BTC_SHORT);
+    await adjust(CONTRACTS.BTC_LONG, direction);
   }
   if (direction <= 0) {
-    direction = -direction;
-    await dropLong();
-    adjust(CONTRACTS.BTC_SHORT, -direction);
+    await drop(CONTRACTS.BTC_LONG);
+    await adjust(CONTRACTS.BTC_SHORT, -direction);
   }
 };

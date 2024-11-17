@@ -18,11 +18,11 @@ const route = createRoute({
 });
 
 app.openapi(route, async (c) => {
-  const { CONTRACTS, getBalanceAsNumber } = blockchain();
+  const { CONTRACTS, getBalance } = blockchain();
   const [SusdBalance, BtcLongBalance, BtcShortBalance] = await Promise.all([
-    getBalanceAsNumber(CONTRACTS.SUSD),
-    getBalanceAsNumber(CONTRACTS.BTC_LONG),
-    getBalanceAsNumber(CONTRACTS.BTC_SHORT),
+    getBalance(CONTRACTS.SUSD),
+    getBalance(CONTRACTS.BTC_LONG),
+    getBalance(CONTRACTS.BTC_SHORT),
   ]);
   return c.json({
     address: blockchain().account.address,
