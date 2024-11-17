@@ -1,14 +1,13 @@
 import { createRoute, z } from "@hono/zod-openapi";
-import { HTTPException } from "hono/http-exception";
 import supabase from "src/utils/supabase.js";
 import app from "../app.js";
-import { Response } from "../utils/schema.js";
+import { makeError, schemaToResponse } from "../utils/schema.js";
 
 const ParamsSchema = z.object({
   name: z.string(),
 });
 
-const ResponseSchema = z
+const BotSchema = z
   .object({
     id: z.string(),
     name: z.string(),
@@ -23,7 +22,7 @@ const route = createRoute({
   query: {
     params: ParamsSchema,
   },
-  responses: Response(ResponseSchema),
+  responses: schemaToResponse(BotSchema),
 });
 
 app.openapi(route, async (c) => {
@@ -34,6 +33,7 @@ app.openapi(route, async (c) => {
     .select("*")
     .eq("name", name)
     .single();
-  if (!data) throw new HTTPException(500, { message: "DB Error" });
+
+  if (!data) throw makeError(500, "DB Error");
   return c.json(data);
 });
