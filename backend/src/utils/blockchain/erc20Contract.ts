@@ -1,16 +1,29 @@
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits, maxUint256, parseUnits } from "viem";
 import { withCache } from "../cache.js";
-import { type BlockchainContract } from "./blockchain.js";
+import { type A0xString, type BlockchainContract } from "./blockchain.js";
 import { Contract } from "./contract.js";
 
 export class ERC20Contract extends Contract {
-  constructor(contract: BlockchainContract) {
-    super(contract);
+  constructor(name: string, contract: BlockchainContract) {
+    super(name, contract);
   }
 
   // Helpers
   getBalanceBigint() {
     return this.contract.read.balanceOf([this.account.address]);
+  }
+
+  getAllowance(spender: A0xString) {
+    return this.contract.read.allowance([this.account.address, spender]);
+  }
+
+  async ensureAllowance(spender: A0xString) {
+    const allowance = await this.getAllowance(spender);
+
+    if (!(allowance == maxUint256)) {
+      console.info(`Creating allowance for ${spender}`);
+      await this.writeContract("approve", [spender, maxUint256]);
+    }
   }
 
   async getBalance() {
@@ -39,10 +52,7 @@ export class ERC20Contract extends Contract {
     return parseUnits(valueInDecimals, decimals);
   }
 
-  toBigintBalanceMaxed = async (
-    contract: Contract,
-    value: number,
-  ): Promise<bigint> => {
+  toBigintBalanceMaxed = async (value: number): Promise<bigint> => {
     const [n, max] = await Promise.all([
       this.toBigint(value),
       this.getBalanceBigint(),

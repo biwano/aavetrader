@@ -5,8 +5,25 @@ import { ERC20Contract } from "./erc20Contract.js";
 export class TlxContract extends ERC20Contract {
   declare contract: BlockchainTLXContract;
 
-  constructor(contract: BlockchainTLXContract) {
-    super(contract);
+  constructor(name: string, contract: BlockchainTLXContract) {
+    super(name, contract);
+  }
+
+  async mint(args: [bigint, bigint]) {
+    return this.writeContract("mint", args).then(
+      this.parseBigintResult.bind(this),
+    );
+  }
+  async redeem(args: [bigint, bigint]) {
+    return this.writeContract("redeem", args).then(
+      this.parseBigintResult.bind(this),
+    );
+  }
+  async parseBigintResult({ hash, result }: { hash: string; result: bigint }) {
+    return {
+      hash,
+      result: await this.toNumber(result),
+    };
   }
 
   async getValueinSUSD(susdContract: ERC20Contract) {

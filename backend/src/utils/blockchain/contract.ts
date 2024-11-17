@@ -7,8 +7,10 @@ import blockchain, {
 export class Contract {
   contract: BlockchainContract;
   blockchain: Blockchain;
+  name: string;
 
-  constructor(contract: BlockchainContract) {
+  constructor(name: string, contract: BlockchainContract) {
+    this.name = name;
     this.contract = contract;
     this.blockchain = blockchain();
   }

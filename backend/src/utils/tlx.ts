@@ -1,133 +1,83 @@
-import { maxUint256 } from "viem";
-import blockchain, {
-  type A0xString,
-  type BlockchainERC20Contract,
-  type BlockchainTLXContract,
-} from "./blockchain/blockchain.js";
+import CONTRACTS from "./blockchain/contracts.js";
+import type { TlxContract } from "./blockchain/tlxContract.js";
 
 const MAX_SLIPPAGE = 0.1;
 
-export const ensureAllowance = async ({
-  contract,
-  spender,
-}: {
-  contract: BlockchainERC20Contract;
-  spender: A0xString;
-}) => {
-  const { account, writeContract } = blockchain();
-  const allowance = await contract.read.allowance([account.address, spender]);
+export const mint = async (tlxContract: TlxContract, SUSDAmount: number) => {
+  await CONTRACTS.SUSD.ensureAllowance(tlxContract.contract.address);
 
-  if (!(allowance == maxUint256)) {
-    console.info(`Creating allowance for ${spender}`);
-    await writeContract(contract, "approve", [spender, maxUint256]);
-  }
-};
-
-export const mint = async (
-  tlxContract: BlockchainTLXContract,
-  SUSDAmount: number,
-) => {
-  const {
-    CONTRACTS,
-    toBigint,
-    writeContract,
-    getExchangeRate,
-    toBigintBalanceMaxed,
-  } = blockchain();
-  await ensureAllowance({
-    contract: CONTRACTS.SUSD,
-    spender: tlxContract.address,
-  });
-
-  const exchangeRate = await getExchangeRate(tlxContract);
+  const exchangeRate = await tlxContract.getExchangeRate();
 
   const minAmountOut = (SUSDAmount / exchangeRate) * (1 - MAX_SLIPPAGE);
 
-  console.info(`Minting ${tlxContract.address} with ${SUSDAmount} SUSD`);
-  const { result } = await writeContract(
-    tlxContract,
-    "mint",
+  console.debug(
+    `Minting ${minAmountOut} ${tlxContract.name} with ${SUSDAmount} SUSD`,
+  );
+  const { result } = await tlxContract.mint(
     await Promise.all([
-      toBigintBalanceMaxed(CONTRACTS.SUSD, SUSDAmount),
-      toBigint(tlxContract, minAmountOut),
+      await CONTRACTS.SUSD.toBigintBalanceMaxed(SUSDAmount),
+      await tlxContract.toBigint(minAmountOut),
     ]),
   );
-  console.info(` => Minted ${result} ${tlxContract.address}`);
+  console.debug(` => Minted ${result} ${tlxContract.name}`);
 };
 
 export const redeem = async (
-  tlxContract: BlockchainTLXContract,
+  tlxContract: TlxContract,
   leveragedTokenAmount: number,
 ) => {
-  const {
-    CONTRACTS,
-    toBigint,
-    writeContract,
-    getExchangeRate,
-    toBigintBalanceMaxed,
-  } = blockchain();
-
-  const exchangeRate = await getExchangeRate(tlxContract);
+  const exchangeRate = await tlxContract.getExchangeRate();
 
   const minBaseAmountReceived =
     leveragedTokenAmount * exchangeRate * (1 - MAX_SLIPPAGE);
 
-  console.info(`Redeeming ${leveragedTokenAmount} of ${tlxContract.address} `);
-  const { result } = await writeContract(
-    tlxContract,
-    "redeem",
+  console.debug(
+    `Redeeming ${leveragedTokenAmount} ${tlxContract.name} for ${minBaseAmountReceived} SUSD`,
+  );
+  const { result } = await tlxContract.redeem(
     await Promise.all([
-      toBigintBalanceMaxed(tlxContract, leveragedTokenAmount),
-      toBigint(CONTRACTS.SUSD, minBaseAmountReceived),
+      tlxContract.toBigintBalanceMaxed(leveragedTokenAmount),
+      CONTRACTS.SUSD.toBigint(minBaseAmountReceived),
     ]),
   );
-  console.info(` => Received ${result} SUSD`);
+  console.debug(` => Received ${result} SUSD`);
 };
 
-export const drop = async (tlxContract: BlockchainTLXContract) => {
-  const { getBalance } = blockchain();
-  const balance = await getBalance(tlxContract);
+export const drop = async (tlxContract: TlxContract) => {
+  const balance = await tlxContract.getBalance();
   if (balance > 0) {
-    console.info(`Droping ${tlxContract.address}`);
     await redeem(tlxContract, balance);
   }
 };
 
-export const adjust = async (
-  tlxContract: BlockchainTLXContract,
-  direction: number,
-) => {
-  const { CONTRACTS, getExchangeRate, getBalance } = blockchain();
-
+export const adjust = async (tlxContract: TlxContract, direction: number) => {
   const [tlxBalance, tlxExchangeRate, susdBalance] = await Promise.all([
-    getBalance(tlxContract),
-    getExchangeRate(tlxContract),
-    getBalance(CONTRACTS.SUSD),
+    tlxContract.getBalance(),
+    tlxContract.getExchangeRate(),
+    CONTRACTS.SUSD.getBalance(),
   ]);
   const totalSUSDvalue = susdBalance + tlxBalance * tlxExchangeRate;
 
   const targetTlxBalance = (totalSUSDvalue * direction) / tlxExchangeRate;
 
-  // Adjust differences > 10%
+  // Adjust differences only if  > 10%
   const diff = Math.abs(targetTlxBalance - tlxBalance) / tlxBalance;
   if (diff < 0.1) return;
 
   if (targetTlxBalance > tlxBalance) {
-    console.info(`Adjusting Balance of ${tlxContract.address}`);
+    console.info(`Adjusting Balance of ${tlxContract.name}`);
     const susdAmount = (targetTlxBalance - tlxBalance) * tlxExchangeRate;
     await mint(tlxContract, susdAmount);
   }
 
   if (targetTlxBalance < tlxBalance) {
-    console.info(`Adjusting Balance of ${tlxContract.address}`);
+    console.info(`Adjusting Balance of ${tlxContract.name}`);
     const tlxAmount = tlxBalance - targetTlxBalance;
     await redeem(tlxContract, tlxAmount);
   }
 };
 
 export const trade = async (direction: number) => {
-  const { CONTRACTS } = blockchain();
-
   if (direction >= 0) {
     await drop(CONTRACTS.BTC_SHORT);
     await adjust(CONTRACTS.BTC_LONG, direction);

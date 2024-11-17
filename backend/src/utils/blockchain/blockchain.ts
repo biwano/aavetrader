@@ -22,7 +22,6 @@ export const CONTRACTS_ADDRESSES: Record<string, A0xString> = {
   SUSD: "0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9",
 };
 
-console.info("a");
 const getBlockchain = () => {
   if (!MNEMONIC) throw "No wallet mnemonic";
   if (!ALCHEMY_KEY) throw "No ALCHEMY_KEY";
