@@ -4,6 +4,12 @@ import { HTTPException } from "hono/http-exception";
 import type { StatusCode } from "hono/utils/http-status";
 import type { ZodRawShape } from "zod";
 
+export const ResultSchema = z
+  .object({
+    result: z.string(),
+  })
+  .openapi("Result");
+
 export const schemaToResponse = <T extends ZodRawShape>(
   schema: z.ZodObject<T>,
 ) => ({

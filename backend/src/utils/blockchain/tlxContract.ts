@@ -32,9 +32,8 @@ export class TlxContract extends ERC20Contract {
       this.getExchangeRate(),
     ]);
     const susdValue = (await this.toNumber(balance)) * exchangeRate;
-    const susdValueBigInt = await susdContract.toBigint(susdValue);
 
-    return susdValueBigInt;
+    return susdValue;
   }
 
   getExchangeRate() {

@@ -8,21 +8,27 @@ export class Logger {
     this.bot = bot;
   }
 
-  async log(value: string) {
-    return await supabase.from("logs").insert({
-      bot: this.bot.id,
-      namespace: "logs",
-      value,
-    });
+  async logs(entries: { namespace: string; value: string | number }[]) {
+    return await supabase.from("logs").insert(
+      entries.map((entry) => ({
+        bot: this.bot.id,
+        namespace: entry.namespace,
+        value: String(entry.value),
+      })),
+    );
+  }
+
+  async log(namespace: string, value: string | number) {
+    return this.logs([{ namespace, value }]);
   }
 
   async info(value: string) {
     console.info(value);
-    return await this.log(`[info] ${value}`);
+    return await this.log("logs", `[info] ${value}`);
   }
 
   async debug(value: string) {
     console.debug(value);
-    return await this.log(`[debug] ${value}`);
+    return await this.log("logs", `[debug] ${value}`);
   }
 }
