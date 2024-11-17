@@ -30,6 +30,38 @@ export type Database = {
         }
         Relationships: []
       }
+      logs: {
+        Row: {
+          bot: string
+          created_at: string
+          id: string
+          namespace: string
+          value: string
+        }
+        Insert: {
+          bot: string
+          created_at?: string
+          id?: string
+          namespace: string
+          value: string
+        }
+        Update: {
+          bot?: string
+          created_at?: string
+          id?: string
+          namespace?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "log_bot_fkey"
+            columns: ["bot"]
+            isOneToOne: false
+            referencedRelation: "bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

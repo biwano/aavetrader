@@ -1,5 +1,5 @@
 import { createRoute, z } from "@hono/zod-openapi";
-import { getBot } from "src/utils/bots.js";
+import { getBot } from "src/utils/supabase/bots.js";
 import app from "../../app.js";
 import { schemaToResponse } from "../../utils/schema.js";
 

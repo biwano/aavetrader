@@ -38,9 +38,7 @@ export class Contract {
     functionName: functionName,
     args: args,
   ) => {
-    console.debug(
-      `...Writing contract ${this.contract.address}.${functionName} ${args}`,
-    );
+    console.debug(`...Writing contract ${this.name}.${functionName} ${args}`);
 
     const { request, result } = await this.publicClient.simulateContract({
       address: this.contract.address,

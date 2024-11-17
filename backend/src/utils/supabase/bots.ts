@@ -1,5 +1,5 @@
 import type { Database } from "src/.generated/database.types.js";
-import { makeDBError } from "./schema.js";
+import { makeDBError } from "../schema.js";
 import supabase from "./supabase.js";
 
 export type Bot = Database["public"]["Tables"]["bots"]["Row"];
@@ -22,8 +22,10 @@ export const updateBot = async (
     .from("bots")
     .update(body)
     .eq("name", name)
+    .select()
     .single();
 
   if (error) throw makeDBError(error);
+  console.info(bot);
   return bot;
 };

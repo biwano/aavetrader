@@ -11,7 +11,7 @@ import { mnemonicToAccount } from "viem/accounts";
 import { optimism } from "viem/chains";
 import { ALCHEMY_KEY, MNEMONIC } from "../../config.js";
 import { withCacheSync } from "../cache.js";
-import { tlxAbi } from "../tlxAbi.js";
+import { tlxAbi } from "./tlxAbi.js";
 
 export type A0xString = `0x${string}`;
 
