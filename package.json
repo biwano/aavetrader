@@ -3,7 +3,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "generate:db:types": "supabase gen types typescript --project-id arpxncbcprwllcgqtzoy > src/.generated/database.types.ts"
+    "generate:db:types": "supabase gen types typescript --project-id arpxncbcprwllcgqtzoy > src/.generated/database.types.ts",
+    "vercel:dev": "vercel dev",
+    "vercel:deploy": "vercel"
   },
   "dependencies": {
     "@aave/contract-helpers": "^1.30.5",
@@ -25,7 +27,8 @@
     "@types/node": "^20.11.17",
     "prettier-plugin-organize-imports": "^4.1.0",
     "supabase": "^1.219.2",
-    "tsx": "^4.7.1"
+    "tsx": "^4.7.1",
+    "vercel": "^39.0.2"
   },
   "prettier": {
     "plugins": [
